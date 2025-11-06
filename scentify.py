@@ -731,10 +731,43 @@ def initialize_session_state():
 # ============================================================================
 
 def render_header():
-    """
-    Render the main header with SCENTIFY title at top left.
-    """
-    st.markdown('<h1 class="main-header">SCENTIFY</h1>', unsafe_allow_html=True)
+    # Clickable logo (button) that always returns to home
+    col_logo, col_spacer = st.columns([1, 5])
+    with col_logo:
+        clicked = st.button(
+            "SCENTIFY",
+            key="logo_button",
+            use_container_width=True
+        )
+        if clicked:
+            st.session_state.active_section = "home"
+            st.session_state.show_perfume_details = False
+            st.session_state.current_perfume = None
+            st.rerun()
+    with col_spacer:
+        st.empty()
+
+    # Style the button to look like your title
+    st.markdown("""
+        <style>
+        div.stButton > button[kind="secondary"] {
+            background: transparent !important;
+            border: none !important;
+            color: #6b5b95 !important;
+            font-size: 52px !important;
+            font-weight: 600 !important;
+            letter-spacing: 3px !important;
+            text-align: left !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+        }
+        div.stButton > button[kind="secondary"]:hover {
+            color: #5a4a7f !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     st.markdown("---")
 
 def render_back_button(target_section: str, label: str = "Back"):
