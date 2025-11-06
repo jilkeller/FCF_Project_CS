@@ -47,224 +47,295 @@ FRAGELLA_API_KEY = os.getenv("FRAGELLA_API_KEY")
 if not FRAGELLA_API_KEY:
     st.error("⚠️ FRAGELLA_API_KEY not found. Please create a .env file with your API key.")
     st.stop()
+    # ============================================================================
+    # PAGE CONFIGURATION
+    # ============================================================================
+    # Set up the Streamlit page with title and layout
+    st.set_page_config(
+        page_title="Scentify - Perfume Finder",
+        page_icon="💐",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
 
-# ============================================================================
-# PAGE CONFIGURATION
-# ============================================================================
-# Set up the Streamlit page with title and layout
-st.set_page_config(
-    page_title="Scentify - Perfume Finder",
-    page_icon="💐",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+    # ============================================================================
+    # QUICK URL NAVIGATION (makes whole card clicks navigate via ?active_section=)
+    # ============================================================================
+    # If landing cards are clicked (JS will append ?active_section=...), honor that
+    try:
+        query_params = st.experimental_get_query_params()
+        if 'active_section' in query_params:
+            candidate = query_params.get('active_section', [None])[0]
+            if candidate in ('home', 'search', 'questionnaire', 'inventory'):
+                # set early so initialize_session_state won't overwrite the navigation
+                st.session_state['active_section'] = candidate
+    except Exception:
+        # Non-fatal; continue normally
+        pass
 
-# ============================================================================
-# CUSTOM CSS STYLING
-# ============================================================================
-def apply_custom_styling():
-    """
-    Apply custom CSS styling to create a clean, elegant interface.
-    Uses pastel purple, gray, white, and black color scheme.
-    Adds minimal floral background elements without emojis.
-    """
-    st.markdown("""
-        <style>
-        /* Import Google Fonts for elegant typography */
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
-        
-        /* Main application background with subtle gradient */
-        .stApp {
-            background: linear-gradient(135deg, #faf9fc 0%, #f0eef5 100%);
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        /* Add minimal floral background pattern */
-        .stApp::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(200, 180, 220, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 90% 80%, rgba(200, 180, 220, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(200, 180, 220, 0.04) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        /* Main header styling */
-        .main-header {
-            font-size: 52px;
-            font-weight: 600;
-            color: #6b5b95;
-            text-align: left;
-            margin-bottom: 10px;
-            letter-spacing: 3px;
-        }
-        
-        /* Section card styling for landing page */
-        .section-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin: 20px 0;
-            border: 2px solid #e8e4f0;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            height: 100%;
-        }
-        
-        .section-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(107, 91, 149, 0.2);
-        }
-        
-        /* Section title styling */
-        .section-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #6b5b95;
-            margin-bottom: 15px;
-        }
-        
-        /* Section description styling */
-        .section-description {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-        
-        /* Button styling */
-        .stButton > button {
-            background-color: #6b5b95;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 30px;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
-        
-        .stButton > button:hover {
-            background-color: #5a4a7f;
-            box-shadow: 0 4px 12px rgba(107, 91, 149, 0.4);
-            transform: translateY(-2px);
-        }
-        
-        /* Filter tag styling */
-        .filter-tag {
-            display: inline-block;
-            background-color: #e8e4f0;
-            color: #6b5b95;
-            padding: 8px 16px;
-            border-radius: 20px;
-            margin: 5px;
-            font-size: 14px;
-            border: 1px solid #c8b8d8;
-        }
-        
-        /* Perfume card styling */
-        .perfume-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 10px 0;
-            border: 2px solid #e8e4f0;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        .perfume-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(107, 91, 149, 0.15);
-        }
-        
-        /* Input field styling */
-        .stTextInput > div > div > input {
-            border-radius: 8px;
-            border: 2px solid #e8e4f0;
-            padding: 10px;
-        }
-        
-        .stTextInput > div > div > input:focus {
-            border-color: #6b5b95;
-        }
-        
-        /* Slider styling */
-        .stSlider > div > div > div {
-            background-color: #6b5b95;
-        }
-        
-        /* Hide Streamlit branding */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        
-        /* Back button styling */
-        .back-button {
-            background-color: #9b8bb5 !important;
-        }
-        
-        /* Perfume detail view styling */
-        .perfume-detail-title {
-            font-size: 36px;
-            font-weight: 600;
-            color: #6b5b95;
-            margin-bottom: 10px;
-        }
-        
-        .perfume-detail-brand {
-            font-size: 20px;
-            color: #888;
-            font-style: italic;
-            margin-bottom: 20px;
-        }
-        
-        /* Note list styling */
-        .note-list {
-            background: #f8f7fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 4px solid #6b5b95;
-        }
-        
-        .note-category {
-            font-weight: 600;
-            color: #6b5b95;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-        
-        /* Questionnaire styling */
-        .bipolar-slider {
-            padding: 20px;
-            background: white;
-            border-radius: 12px;
-            margin: 20px 0;
-            border: 2px solid #e8e4f0;
-        }
-        
-        .bipolar-label {
-            font-size: 18px;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        /* Chart container styling */
-        .chart-container {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 15px 0;
-            border: 2px solid #e8e4f0;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    # ============================================================================
+    # CUSTOM CSS STYLING
+    # ============================================================================
+    def apply_custom_styling():
+        """
+        Apply custom CSS styling to create a clean, elegant interface.
+        Uses pastel purple, gray, white, and black color scheme.
+        Adds minimal floral background elements without emojis.
+        Also ensures landing page cards are equal height and clickable.
+        """
+        st.markdown("""
+            <style>
+            /* Import Google Fonts for elegant typography */
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+            
+            /* Main application background with subtle gradient */
+            .stApp {
+                background: linear-gradient(135deg, #faf9fc 0%, #f0eef5 100%);
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            /* Add minimal floral background pattern */
+            .stApp::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image: 
+                    radial-gradient(circle at 10% 20%, rgba(200, 180, 220, 0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 90% 80%, rgba(200, 180, 220, 0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 50% 50%, rgba(200, 180, 220, 0.04) 0%, transparent 50%);
+                pointer-events: none;
+                z-index: 0;
+            }
+            
+            /* Main header styling */
+            .main-header {
+                font-size: 52px;
+                font-weight: 600;
+                color: #6b5b95;
+                text-align: left;
+                margin-bottom: 10px;
+                letter-spacing: 3px;
+            }
+            
+            /* Section card styling for landing page */
+            /* Fixed, equal height and use flex to space content so buttons appear aligned */
+            .section-card {
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                margin: 20px 0;
+                border: 2px solid #e8e4f0;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                height: 360px;                 /* fixed equal height for all cards */
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;/* ensure internal layout is aligned */
+                position: relative;            /* needed for clickable overlay */
+                overflow: hidden;
+                cursor: pointer;               /* indicate card is clickable */
+            }
+            
+            .section-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 16px rgba(107, 91, 149, 0.2);
+            }
+            
+            /* Section title styling */
+            .section-title {
+                font-size: 28px;
+                font-weight: 600;
+                color: #6b5b95;
+                margin-bottom: 15px;
+            }
+            
+            /* Section description styling */
+            .section-description {
+                font-size: 16px;
+                color: #666;
+                margin-bottom: 20px;
+                line-height: 1.6;
+            }
+            
+            /* Make interactive overlay (in case Streamlit's own button still present) */
+            .section-card .card-overlay {
+                position: absolute;
+                inset: 0;
+                z-index: 2;
+                background: transparent;
+            }
+            
+            /* Button styling (kept for accessibility) */
+            .stButton > button {
+                background-color: #6b5b95;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 12px 30px;
+                font-size: 16px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                width: 100%;
+            }
+            
+            .stButton > button:hover {
+                background-color: #5a4a7f;
+                box-shadow: 0 4px 12px rgba(107, 91, 149, 0.4);
+                transform: translateY(-2px);
+            }
+            
+            /* Filter tag styling */
+            .filter-tag {
+                display: inline-block;
+                background-color: #e8e4f0;
+                color: #6b5b95;
+                padding: 8px 16px;
+                border-radius: 20px;
+                margin: 5px;
+                font-size: 14px;
+                border: 1px solid #c8b8d8;
+            }
+            
+            /* Perfume card styling */
+            .perfume-card {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 10px 0;
+                border: 2px solid #e8e4f0;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+            
+            .perfume-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 12px rgba(107, 91, 149, 0.15);
+            }
+            
+            /* Input field styling */
+            .stTextInput > div > div > input {
+                border-radius: 8px;
+                border: 2px solid #e8e4f0;
+                padding: 10px;
+            }
+            
+            .stTextInput > div > div > input:focus {
+                border-color: #6b5b95;
+            }
+            
+            /* Slider styling */
+            .stSlider > div > div > div {
+                background-color: #6b5b95;
+            }
+            
+            /* Hide Streamlit branding */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            
+            /* Back button styling */
+            .back-button {
+                background-color: #9b8bb5 !important;
+            }
+            
+            /* Perfume detail view styling */
+            .perfume-detail-title {
+                font-size: 36px;
+                font-weight: 600;
+                color: #6b5b95;
+                margin-bottom: 10px;
+            }
+            
+            .perfume-detail-brand {
+                font-size: 20px;
+                color: #888;
+                font-style: italic;
+                margin-bottom: 20px;
+            }
+            
+            /* Note list styling */
+            .note-list {
+                background: #f8f7fa;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 10px 0;
+                border-left: 4px solid #6b5b95;
+            }
+            
+            .note-category {
+                font-weight: 600;
+                color: #6b5b95;
+                font-size: 16px;
+                margin-bottom: 5px;
+            }
+            
+            /* Questionnaire styling */
+            .bipolar-slider {
+                padding: 20px;
+                background: white;
+                border-radius: 12px;
+                margin: 20px 0;
+                border: 2px solid #e8e4f0;
+            }
+            
+            .bipolar-label {
+                font-size: 18px;
+                font-weight: 500;
+                color: #333;
+            }
+            
+            /* Chart container styling */
+            .chart-container {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 15px 0;
+                border: 2px solid #e8e4f0;
+            }
+
+            /* Ensure landing page columns align to same height visually */
+            .stColumns { align-items: stretch; }
+            </style>
+
+            <script>
+            // Attach click handlers to entire .section-card elements so clicking anywhere opens the section.
+            // The script maps the visible .section-title text to the app section and navigates by adding ?active_section=<name>
+            document.addEventListener("DOMContentLoaded", function() {
+                try {
+                    const mapTitleToSection = function(title) {
+                        title = (title || "").trim().toLowerCase();
+                        if (title.indexOf("search") !== -1) return "search";
+                        if (title.indexOf("questionnaire") !== -1) return "questionnaire";
+                        if (title.indexOf("inventory") !== -1 || title.indexOf("perfume") !== -1) return "inventory";
+                        return "home";
+                    };
+                    // Use a small delay since Streamlit renders components asynchronously
+                    setTimeout(() => {
+                        document.querySelectorAll('.section-card').forEach(card => {
+                            // Avoid attaching duplicate listeners
+                            if (card.getAttribute('data-clickable-attached')) return;
+                            card.setAttribute('data-clickable-attached', '1');
+                            card.style.cursor = 'pointer';
+                            card.addEventListener('click', function(evt) {
+                                // If user clicked an interactive element (like the small button), let that handle it
+                                const tag = evt.target.tagName.toLowerCase();
+                                if (['button','a','input'].includes(tag)) return;
+                                const titleEl = card.querySelector('.section-title');
+                                const section = mapTitleToSection(titleEl ? titleEl.innerText : '');
+                                // Navigate by setting query param so Streamlit can pick it up
+                                const newUrl = window.location.pathname + '?active_section=' + section;
+                                window.location.href = newUrl;
+                            });
+                        });
+                    }, 250);
+                } catch(err) {
+                    // no-op
+                    console.warn("Landing card click binding failed:", err);
+                }
+            });
+            </script>
+        """, unsafe_allow_html=True)
 
 # ============================================================================
 # DATA PERSISTENCE FILES
