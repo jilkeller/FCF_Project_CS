@@ -857,7 +857,6 @@ def render_header():
     """, unsafe_allow_html=True)
     st.markdown("---")
 
-
 def render_back_button(target_section: str, label: str = "Back"):
     """
     Render a back button to navigate to a different section.
